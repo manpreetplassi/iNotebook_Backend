@@ -20,4 +20,14 @@ const UserSchema = new Schema({
         default: Date.now
     },
 });
+
+const virtuals = UserSchema.virtual('id');
+virtuals.get(function(){
+  return this._id;
+})
+UserSchema.set('toJSON',{
+  virtuals: true,
+  versionKey: false,
+  transform: function(doc,ret){delete ret._id}
+})
 module.exports = mongoose.model("user", UserSchema);

@@ -1,36 +1,32 @@
 const express = require('express')
 const router = express.Router()
-const { body, validationResult } = require('express-validator');  //for validation no. of chracters
+const { body, validationResult } = require('express-validator');  
 
-// User model
 const Note = require('../models/Note');
-const fetchuser = require('../middlewere/fetchuser');
 
-// Route 1 : Endpoint to fatch all notes from the database http://localhost:5000/api/notes/fetchallnotes
 
-router.get('/fetchallnotes',fetchuser, async(req, res) => {
-    const note = await Note.find({user: req.user.id}) 
+router.get('/fetchallnotes' , async(req, res) => {
+  const {id} = req.user;
+    const note = await Note.find({user: id}) 
     res.json(note)
 })
 
-// Route 2 : Endpoint to add notes to the database http://localhost:5000/api/notes/addnotes
 
-router.post('/addnotes',fetchuser, [
+router.post('/addnotes', [
     body('title', "Enter atleast 3 chracters").isLength({ min: 4 }),
     body('description', "Add more than 6 characters").isLength({ min: 6 }),
 ],  async(req, res) => {
-    try {
-        // Check for validation errors
+  const {id} = req.user;
+  try {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
             return res.status(400).json({ errors: errors.array() });
         }
 
-        // Extract validated data from the request body
         const { title, description ,tag} = req.body;
 
         const note = new Note({
-            title,description,tag,user:req.user.id
+            title,description,tag,user:id
         })
         const saveNote = await note.save();
     
@@ -42,13 +38,13 @@ router.post('/addnotes',fetchuser, [
     }
 })
 
-// Route 3 : Endpoint to update notes http://localhost:5000/api/notes/updatenotes/:id
 
-router.put('/updatenotes/:id',fetchuser, [
+router.put('/updatenotes/:id', [
     body('title', "Enter atleast 3 chracters").isLength({ min: 4 }),
     body('description', "Add more than 6 characters").isLength({ min: 6 }),
 ],  async(req, res) => {
-    try {
+  const {id} = req.user;
+  try {
         // Check for validation errors
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
@@ -69,7 +65,7 @@ router.put('/updatenotes/:id',fetchuser, [
 
         if(!note){return res.status(404).send("Not Found")}  //if note not exist
 
-        if(note.user.toString() !== req.user.id){
+        if(note.user.toString() !== id){
             return res.status(404).send("Not Allowed");  //if other try to access the notes
         }
         note = await Note.findByIdAndUpdate(req.params.id, {$set:newNote}, {new:true});
@@ -80,16 +76,17 @@ router.put('/updatenotes/:id',fetchuser, [
     }
 })
 
-// Route 4 : Endpoint to delete notes http://localhost:5000/api/notes/deletenotes/:id
+// Route 4 : Endpoint to delete notes /api/notes/deletenotes/:id
 
-router.delete('/deletenotes/:id',fetchuser, async(req, res) => {
-    try {
+router.delete('/deletenotes/:id', async(req, res) => {
+  const {id} = req.user;
+  try {
         // find the note to be updated
         let note = await Note.findById(req.params.id);
 
         if(!note){return res.status(404).send("Not Found")} //if note not exist
         //  check authentication of user
-        if(note.user.toString() !== req.user.id){
+        if(note.user.toString() !== id){
             return res.status(404).send("Not Found"); 
         }
         note = await Note.findByIdAndDelete(req.params.id)
